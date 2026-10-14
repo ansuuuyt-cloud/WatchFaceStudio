@@ -25,6 +25,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
+
           ZIP_FILE="$(find . -maxdepth 2 -type f -name 'WatchFaceStudio.zip' -print -quit)"
 
           if [ -z "$ZIP_FILE" ]; then
@@ -35,14 +36,21 @@ jobs:
           mkdir -p extracted
           unzip -q "$ZIP_FILE" -d extracted
 
-          if [ ! -f extracted/settings.gradle.kts ]; then
-            echo "ERROR: Android project files were not found at the expected location."
-            find extracted -maxdepth 4 -type f | head -100
+          PROJECT_DIR="extracted"
+
+          if [ ! -f "$PROJECT_DIR/settings.gradle.kts" ]; then
+            PROJECT_DIR="$(find extracted -name settings.gradle.kts -type f -print -quit | xargs -r dirname)"
+          fi
+
+          if [ -z "$PROJECT_DIR" ] || [ ! -f "$PROJECT_DIR/settings.gradle.kts" ]; then
+            echo "ERROR: Android project settings.gradle.kts was not found."
+            find extracted -maxdepth 5 -type f | head -100
             exit 1
           fi
 
-          cp -a extracted/. .
-          echo "Project files extracted successfully."
+          cp -a "$PROJECT_DIR"/. .
+
+          echo "Android project extracted successfully."
 
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@v4
